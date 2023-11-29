@@ -1,0 +1,60 @@
+﻿@page "/sudoku"
+@using System.Text;
+
+
+<PageTitle>Sudoku</PageTitle>
+
+<h1>Counter</h1>
+
+@code {
+    static async Task Main()
+    {
+        string url = "https://sugoku.onrender.com/board?difficulty=easy";
+
+        using (HttpClient httpClient = new HttpClient())
+        {
+            try
+            {
+                HttpResponseMessage response = await httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string content = await response.Content.ReadAsStringAsync();
+
+                    string originalString = content;
+                    char[] charToRemove = { ']', '[', 'b', 'o', 'a', 'r', 'd', ':', '{', '}', '"', ',' };
+
+                    foreach (char chaToRemove in charToRemove)
+                    {
+                        originalString = originalString.Replace(chaToRemove.ToString(), string.Empty);
+                    }
+
+                    char characterToInsert = '-';
+                    int[] positionsToInsert = { 9, 19, 29, 39, 49, 59, 69, 79 };
+
+                    StringBuilder stringBuilder = new StringBuilder(originalString);
+
+                    // Insert the character at each specified position
+                    foreach (var position in positionsToInsert)
+                    {
+                        stringBuilder.Insert(position, characterToInsert);
+                    }
+
+                    string modifiedString = stringBuilder.ToString();
+
+
+                }
+                else
+                {
+                    Console.WriteLine($"Error: {response.StatusCode} - {response.ReasonPhrase}");
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+            }
+        }
+    }
+}

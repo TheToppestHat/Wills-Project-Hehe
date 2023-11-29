@@ -1,0 +1,104 @@
+﻿@page "/"
+@using System.Text;
+@using System.Net.Http.Headers;
+
+
+<PageTitle>Home</PageTitle>
+
+<h1>Counter</h1>
+@if(gameData == null)
+{
+    <p>Loading....</p>
+}
+else
+{
+    <p>@gameData</p>
+    <p>@solvedReturn</p>
+}
+
+@code {
+    public string? gameData;
+    public string? solvedReturn;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        string url = "https://sugoku.onrender.com/board?difficulty=easy";
+
+        using (HttpClient httpClient = new HttpClient())
+        {
+            try
+            {
+                HttpResponseMessage response = await httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string content = await response.Content.ReadAsStringAsync();
+
+                    string originalString = content;
+                    char[] charToRemove = { ']', '[', 'b', 'o', 'a', 'r', 'd', ':', '{', '}', '"', ',' };
+
+                    foreach (char chaToRemove in charToRemove)
+                    {
+                        originalString = originalString.Replace(chaToRemove.ToString(), string.Empty);
+                    }
+
+                    char characterToInsert = '-';
+                    int[] positionsToInsert = { 9, 19, 29, 39, 49, 59, 69, 79 };
+
+                    StringBuilder stringBuilder = new StringBuilder(originalString);
+
+                    // Insert the character at each specified position
+                    foreach (var position in positionsToInsert)
+                    {
+                        stringBuilder.Insert(position, characterToInsert);
+                    }
+
+                    string modifiedString = stringBuilder.ToString();
+                    gameData = modifiedString;
+
+                    await Solved(modifiedString);
+                }
+                else
+                {
+                    Console.WriteLine($"Error: {response.StatusCode} - {response.ReasonPhrase}");
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task Solved(string current)
+    {
+        var client = new HttpClient();
+        var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri("https://solve-sudoku.p.rapidapi.com/"),
+                Headers =
+                {
+                    { "X-RapidAPI-Key", "2d936239f9msh2986c00d5ddf6bfp1f9b48jsnf2ace59cff4a" },
+                    { "X-RapidAPI-Host", "solve-sudoku.p.rapidapi.com" },
+                },
+                Content = new StringContent("{\r\n    \"puzzle\": \"2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3\"\r\n}")
+                {
+                    Headers =
+                        {
+                            ContentType = new MediaTypeHeaderValue("application/json")
+                        }
+                }
+            };
+        using (var response = await client.SendAsync(request))
+        {
+            response.EnsureSuccessStatusCode();
+            solvedReturn = await response.Content.ReadAsStringAsync();
+        }
+
+
+    }
+}
