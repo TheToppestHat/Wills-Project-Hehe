@@ -1,6 +1,7 @@
 ﻿@page "/counter"
 @using System.Text;
 @using System.Net.Http.Headers;
+@using System.Text.Json;
 
 
 <PageTitle>Counter</PageTitle>
@@ -38,7 +39,7 @@ else
                     string content = await response.Content.ReadAsStringAsync();
 
                     string modifiedString = content;
-                    char[] charToRemove = { ']', '[', 'b', 'o', 'a', 'r', 'd', ':', '{', '}', '"', ',' };
+                    char[] charToRemove = { ']', '[', 'b', 'o', 'a', 'r', 'd', ':', '{', '}', '"', ',', '\n' };
 
                     foreach (char chaToRemove in charToRemove)
                     {
@@ -67,7 +68,7 @@ else
                                 sudokuBoard[i, j] = int.Parse(currentChar.ToString());
                             }
 
-                          
+
                         }
                     }
                 }
@@ -88,6 +89,10 @@ else
     private async Task Solved(string current)
     {
         var client = new HttpClient();
+
+        var payload = new { puzzle = current };
+        string jsonString = JsonSerializer.Serialize(payload);
+
         var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Post,
@@ -97,7 +102,8 @@ else
                     { "X-RapidAPI-Key", "2d936239f9msh2986c00d5ddf6bfp1f9b48jsnf2ace59cff4a" },
                     { "X-RapidAPI-Host", "solve-sudoku.p.rapidapi.com" },
                 },
-                Content = new StringContent("{\r\n    \"puzzle\": \"2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3\"\r\n}")
+                //Content = new StringContent("{\r\n    \"puzzle\": \"2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3\"\r\n}")
+                Content = new StringContent(jsonString)
                 {
                     Headers =
                         {
