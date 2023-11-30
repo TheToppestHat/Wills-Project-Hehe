@@ -1,0 +1,140 @@
+﻿@page "/Medium"
+@using System.Text;
+@using System.Net.Http.Headers;
+@using System.Text.Json;
+
+
+<PageTitle>Medium Puzzle</PageTitle>
+
+<h1>Medium</h1>
+@if (gameData == null)
+{
+    <p>Loading....</p>
+}
+else
+{
+    <p>@gameData</p>
+    <p>@solvedReturn</p>
+}
+
+
+
+@code {
+    public string? gameData;
+    public string? solvedReturn;
+    public int?[,] sudokuBoard;
+
+    protected override async Task OnInitializedAsync()
+    {
+        string url = "https://sugoku.onrender.com/board?difficulty=medium";
+
+        using (HttpClient httpClient = new HttpClient())
+        {
+            try
+            {
+                HttpResponseMessage response = await httpClient.GetAsync(url);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string content = await response.Content.ReadAsStringAsync();
+
+                    string modifiedString = content;
+                    char[] charToRemove = { ']', '[', 'b', 'o', 'a', 'r', 'd', ':', '{', '}', '"', ',', '\n' };
+
+                    foreach (char chaToRemove in charToRemove)
+                    {
+                        modifiedString = modifiedString.Replace(chaToRemove.ToString(), string.Empty);
+                    }
+
+                    modifiedString = modifiedString.Replace('0', '.');
+
+                    gameData = modifiedString;
+
+                    await Solved(modifiedString);
+
+                    sudokuBoard = new int?[9, 9];
+
+                    for (int i = 0; i < 9; i++)
+                    {
+                        for (int j = 0; j < 9; j++)
+                        {
+                            char currentChar = modifiedString[i * 9 + j];
+                            if (currentChar == '.')
+                            {
+                                sudokuBoard[i, j] = null;
+                            }
+                            else
+                            {
+                                sudokuBoard[i, j] = int.Parse(currentChar.ToString());
+                            }
+
+
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Error: {response.StatusCode} - {response.ReasonPhrase}");
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task Solved(string current)
+    {
+        var client = new HttpClient();
+
+        var payload = new { puzzle = current };
+        string jsonString = JsonSerializer.Serialize(payload);
+
+        var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri("https://solve-sudoku.p.rapidapi.com/"),
+                Headers =
+                {
+                    { "X-RapidAPI-Key", "2d936239f9msh2986c00d5ddf6bfp1f9b48jsnf2ace59cff4a" },
+                    { "X-RapidAPI-Host", "solve-sudoku.p.rapidapi.com" },
+                },
+                //Content = new StringContent("{\r\n    \"puzzle\": \"2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3\"\r\n}")
+                Content = new StringContent(jsonString)
+                {
+                    Headers =
+                        {
+                            ContentType = new MediaTypeHeaderValue("application/json")
+                        }
+                }
+            };
+        using (var response = await client.SendAsync(request))
+        {
+            response.EnsureSuccessStatusCode();
+            solvedReturn = await response.Content.ReadAsStringAsync();
+        }
+
+
+    }
+}
+
+@if (sudokuBoard != null)
+{
+    <table>
+        @for (int i = 0; i < 9; i++)
+        {
+            <tr>
+                @for (int j = 0; j < 9; j++)
+                {
+                    <td>
+                        <input type="number" @bind="sudokuBoard[i, j]" min="1" max="9" />
+                    </td>
+                }
+            </tr>
+        }
+    </table>
+}
+
