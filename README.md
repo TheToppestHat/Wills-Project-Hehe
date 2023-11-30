@@ -2,5 +2,5 @@
 Its Wills stuff for CSCI 2910 -- Blazor/Sudoku
 
 
-**Will Update**
-Use Easy Medium and Hard, not Counter and Index
+**Will**
+Use Easy Medium and Hard, not Counter, FetchData, and Index
